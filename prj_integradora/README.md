@@ -6,6 +6,10 @@ Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+<img width="1141" height="637" alt="image" src="https://github.com/user-attachments/assets/85163352-4af9-494a-b9b2-4e8c23fbd32f" />
+
+## Selecionar o tipo de linguagem e explicar o tipo de código
+- Ao selecionar uma opção com o tipo de linguagem selecionado copiar e colar um trecho de código e colar na área de texto
 
 ## Como usar
 
