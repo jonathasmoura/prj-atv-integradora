@@ -53,23 +53,17 @@ Esse comando inicia:
 - Backend: `http://localhost:3001`
 - Frontend: `http://localhost:5173`
 
-### 3) Build
+Caso seja necessário, abra duas abas de prompt e digite:
+```bash
+npm run backend
+```
+- Para Backend: `http://localhost:3001` 
 
 ```bash
-npm run build
+npm run dev
 ```
+- Para Frontend: `http://localhost:5173`
 
-### 4) Preview da build
-
-```bash
-npm run preview
-```
-
-### 5) Lint
-
-```bash
-npm run lint
-```
 
 ---
 
@@ -99,6 +93,18 @@ O projeto usa variáveis de ambiente via **dotenv**.
 ## Interfaces e objetivos da execução do sistema
 
 ### Interface (o que o usuário faz)
+<img width="886" height="390" alt="image" src="https://github.com/user-attachments/assets/d8f8182c-a6fd-4fba-8704-9dc1d0a331b2" />
+Seleciona um tipo de linguagem, nesse caso JavaScript.
+<img width="886" height="437" alt="image" src="https://github.com/user-attachments/assets/ff09be74-2a05-434a-b79c-f8231008b1ab" />
+
+E obtém a resposta solicitada:
+<img width="886" height="437" alt="image" src="https://github.com/user-attachments/assets/5e904ff9-6bd5-4278-a67b-bfc770354e93" />
+
+Selecionando outra linguagem, agora o Python:
+<img width="886" height="389" alt="image" src="https://github.com/user-attachments/assets/30a20896-96f7-41a7-9ac9-a7105adbebf0" />
+Agora a resposta para a solicitação selecionada:
+<img width="886" height="510" alt="image" src="https://github.com/user-attachments/assets/e3a946af-bed8-4620-a6a0-1f5ed4d7b70b" />
+
 
 1. Selecionar a **linguagem** (JavaScript, Python, Java, PHP).
 2. Colar um **trecho de código** no campo de texto.
