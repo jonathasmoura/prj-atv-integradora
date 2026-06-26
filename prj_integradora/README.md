@@ -163,3 +163,20 @@ Recebe o código e retorna a explicação.
 - `400` se `code` ou `language` estiverem ausentes.
 - `429` quando a cota da API é excedida.
 - `502/500` quando a IA retorna resposta vazia ou ocorre falha ao processar.
+
+## Inclusão testes unitários
+
+Implementados dois testes que validem, de forma isolada e consistente, as unidades lógicas de envio e de
+recebimento do retorno dos dados.
+
+```bash
+npm i jest
+```
+
+- Comando para rodar os testes
+```
+ npm run test -- --runInBand --verbose --testLocationInResults
+```
+- Resultado dos testes
+<img width="988" height="323" alt="image" src="https://github.com/user-attachments/assets/84512052-a0ef-42bf-b16b-43597ffce54f" />
+
