@@ -1,117 +1,77 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-
+import { GoogleGenAI } from "@google/genai";
 dotenv.config();
 
 const app = express();
+
+/* global process */
+
 const port = (() => {
-  const p =
-    typeof process !== "undefined" && process.env && process.env.PORT
-      ? process.env.PORT
-      : undefined;
+  const p = process.env?.PORT;
   const n = Number(p);
   return Number.isFinite(n) && n > 0 ? n : 3001;
 })();
 
 app.use(cors());
+
 app.use(express.json({ limit: "1mb" }));
 
-const geminiKey =
-  typeof process !== "undefined" && process.env && process.env.GEMINI_API_KEY
-    ? String(process.env.GEMINI_API_KEY).trim()
-    : undefined;
-const geminiModel =
-  typeof process !== "undefined" && process.env && process.env.GEMINI_MODEL
-    ? String(process.env.GEMINI_MODEL).trim()
-    : "gemini-1.0";
+const geminiKey = process.env?.GEMINI_API_KEY
+  ? String(process.env.GEMINI_API_KEY).trim()
+  : undefined;
+
+const geminiModel = process.env?.GEMINI_MODEL
+  ? String(process.env.GEMINI_MODEL).trim()
+  : "gemini-3.5-flash";
+
+const ai = new GoogleGenAI({ apiKey: geminiKey });
 
 async function callGeminiWithRetry(promptText, attempts = 3) {
   if (!geminiKey) {
     throw new Error("GEMINI_API_KEY não definido.");
   }
 
-  const normalizedModel = String(geminiModel || "").replace(/^models\//i, "");
-  const url = `https://generativelanguage.googleapis.com/v1/models/${encodeURIComponent(
-    normalizedModel,
-  )}:generate?key=${encodeURIComponent(geminiKey)}`;
-
-  const body = {
-    input: [
-      {
-        role: "user",
-        content: [{ type: "text", text: promptText }],
-      },
-    ],
-    temperature: 0.2,
-    maxOutputTokens: 512,
-  };
-
   const baseDelay = 500;
+  let lastError;
+
   for (let i = 0; i < attempts; i++) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    const responseText = await response.text();
-    let parsedBody;
     try {
-      parsedBody = JSON.parse(responseText);
-    } catch {
-      parsedBody = undefined;
-    }
+      const interaction = await ai.interactions.create({
+        model: geminiModel,
+        input: promptText,
+      });
 
-    if (response.ok) {
-      return parsedBody ?? { raw: responseText };
-    }
+      return interaction;
+    } catch (error) {
+      lastError = error;
 
-    const isRetryable = response.status === 429 || response.status >= 500;
-    if (!isRetryable || i === attempts - 1) {
-      const errMessage =
-        parsedBody?.error?.message || parsedBody?.error || responseText;
-      const error = new Error(
-        `Gemini API retornou ${response.status}: ${errMessage}`,
-      );
-      error.status = response.status;
-      error.details = parsedBody;
-      throw error;
-    }
+      const status =
+        error?.status ||
+        error?.response?.status ||
+        error?.response?.data?.status;
 
-    const delay = baseDelay * Math.pow(2, i) + Math.floor(Math.random() * 200);
-    await new Promise((resolve) => setTimeout(resolve, delay));
+      const isRetryable =
+        status === 429 || (typeof status === "number" && status >= 500);
+
+      if (!isRetryable || i === attempts - 1) {
+        throw error;
+      }
+
+      const delay =
+        baseDelay * Math.pow(2, i) + Math.floor(Math.random() * 200);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
   }
+
+  throw lastError;
 }
 
-function extractGeminiText(data) {
-  if (!data) return "";
-  if (Array.isArray(data.candidates)) {
-    return data.candidates
-      .map((candidate) => {
-        const content = candidate?.content;
-        if (typeof content === "string") return content;
-        if (Array.isArray(content)) {
-          return content.map((item) => item?.text || "").join("");
-        }
-        return "";
-      })
-      .join("\n")
-      .trim();
-  }
-  if (typeof data.output_text === "string") return data.output_text.trim();
-  if (typeof data.generated_text === "string")
-    return data.generated_text.trim();
-  if (typeof data.text === "string") return data.text.trim();
-  if (typeof data.output === "string") return data.output.trim();
-  if (Array.isArray(data.output)) {
-    return data.output
-      .map((item) => item?.text || "")
-      .join("\n")
-      .trim();
+function extractGeminiText(interaction) {
+  if (!interaction) return "";
+  if (typeof interaction.output_text === "string") {
+    return interaction.output_text.trim();
   }
   return "";
 }
@@ -138,11 +98,41 @@ app.post("/api/explain-code", async (req, res) => {
   }
 
   try {
-    const prompt = `Você é um assistente que explica código. Leia o código abaixo e explique o que ele faz, destacando os pontos principais, o fluxo e a finalidade.\n\nLinguagem: ${language}\nCódigo:\n${code}\n\nExplique de forma clara e objetiva.`;
+    const prompt = `Você é um assistente que EXPLICA CÓDIGO.
+
+Tarefa:
+1) Leia o código abaixo.
+2) Explique o que ele faz de forma fiel ao código.
+3) A explicação deve estar ALINHADA com a linguagem selecionada: ${language}.
+4) Descreva o fluxo (passo a passo) e a finalidade.
+5) Quando houver um resultado final evidente (ex.: console.log/soma/retorno), diga explicitamente qual seria o valor/resultado esperado pelo código.
+6) Não invente variáveis/funcionalidades que não existam no trecho.
+
+Regras:
+- Responda SEMPRE em PT-BR.
+
+Formato (responda exatamente assim):
+- Visão geral (1-3 linhas)
+- Fluxo passo a passo (bullet points)
+- Resultado/saída esperada (se aplicável)
+- Observações importantes
+- Máximo 20 linhas
+
+Linguagem: ${language}
+Código:
+${code}`;
 
     const response = await callGeminiWithRetry(prompt);
     const explanation =
       extractGeminiText(response) || "Não foi possível gerar a explicação.";
+
+    if (!explanation || !String(explanation).trim()) {
+      return res.status(502).json({
+        ok: false,
+        error:
+          "A API retornou uma resposta vazia. Tente novamente ou revise o código colado.",
+      });
+    }
 
     return res.json({ ok: true, explanation });
   } catch (error) {
